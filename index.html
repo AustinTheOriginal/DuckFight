@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DUCK WAR</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;800&display=swap');
+  :root{
+    --p1:#3399ff;--p2:#ff4444;
+    --bg:#1a1008;--warm1:#2d1f0a;--warm2:#3d2b10;
+    --accent:#f5c842;--text:#f0e0c0;--muted:#8a6a40;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;overflow:hidden;width:100%;height:100%;user-select:none;}
+
+/* landscape suggestion (optional, dismissable) */
+#rotatePrompt{display:none;position:fixed;inset:0;z-index:9999;background:#100a00;align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;}
+#rotatePrompt .ri{font-size:56px;animation:rspin 2s ease-in-out infinite;}
+@keyframes rspin{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
+#rotatePrompt p{font-family:‘Fredoka One’,cursive;font-size:24px;letter-spacing:2px;color:var(–accent);}
+#rotatePrompt small{font-size:11px;color:#5a4020;letter-spacing:1px;}
+.rotate-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+.rotate-btn{pointer-events:all;border:none;font-family:‘Fredoka One’,cursive;font-size:16px;letter-spacing:1px;padding:11px 26px;cursor:pointer;border-radius:25px;transition:transform .15s;}
+.rotate-btn.yes{background:var(–accent);color:#2a1000;box-shadow:0 3px 0 #8a5500;}
+.rotate-btn.no{background:#3a2810;color:var(–text);border:2px solid #6a4820;}
+.rotate-btn:hover{transform:translateY(-2px);}
+
+canvas{display:block;touch-action:none;}
+
+/* ── START SCREEN — warm cozy style ── */
+#startScreen{
+position:fixed;inset:0;
+background:radial-gradient(ellipse at 50% 30%, #3d2b10 0%, #1a1008 70%);
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:14px;z-index:100;overflow-y:auto;padding:16px;
+}
+/* subtle floating feathers bg */
+#startScreen::before{
+content:‘🪶 🪶 🪶 🪶 🪶 🪶 🪶 🪶’;
+position:absolute;top:0;left:0;width:100%;
+font-size:20px;opacity:0.06;letter-spacing:60px;
+white-space:nowrap;overflow:hidden;
+animation:featherDrift 8s linear infinite;
+pointer-events:none;
+}
+@keyframes featherDrift{0%{transform:translateX(0)}100%{transform:translateX(-200px)}}
+
+.logo{
+font-family:‘Fredoka One’,cursive;
+font-size:clamp(40px,7vw,86px);letter-spacing:4px;
+color:var(–accent);
+text-shadow:0 4px 0 #8a5500,0 6px 20px rgba(245,200,66,0.4);
+animation:wobble 3s ease-in-out infinite;line-height:1;
+}
+@keyframes wobble{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(1deg)}}
+.logo-duck{font-size:0.9em;margin:0 6px;}
+.subtitle{font-size:11px;color:var(–muted);letter-spacing:3px;font-weight:600;}
+
+.weapon-select-row{display:flex;gap:18px;align-items:flex-start;justify-content:center;width:100%;max-width:860px;}
+.ws-panel{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;min-width:0;}
+.ws-label{font-family:‘Fredoka One’,cursive;font-size:14px;letter-spacing:1px;}
+.ws-label.p1c{color:#66bbff;}.ws-label.p2c{color:#ff8888;}
+.ws-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;width:100%;}
+.wp-card{
+pointer-events:all;cursor:pointer;
+background:#2a1c08;border:2px solid #4a3418;
+border-radius:8px;padding:6px 3px;
+display:flex;flex-direction:column;align-items:center;gap:1px;transition:all .15s;
+}
+.wp-card:hover{background:#3a2810;border-color:#7a5a30;transform:translateY(-2px);}
+.wp-card.sel-p1{border-color:#66bbff;background:#0d1a2a;box-shadow:0 0 10px rgba(100,180,255,.35);}
+.wp-card.sel-p2{border-color:#ff8888;background:#2a0d0d;box-shadow:0 0 10px rgba(255,100,100,.35);}
+.wp-card .wic{font-size:18px;}.wp-card .wnm{font-size:6px;color:#9a7a50;text-align:center;font-weight:700;}
+.wp-card .wsp{font-size:5px;color:#5a4020;text-align:center;}
+.ws-random{
+pointer-events:all;cursor:pointer;background:#2a1c08;border:2px solid #5a3a18;
+border-radius:20px;padding:4px 14px;font-size:9px;color:var(–muted);letter-spacing:1px;
+font-weight:700;transition:all .15s;
+}
+.ws-random:hover{border-color:var(–accent);color:var(–accent);}
+
+.mode-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+.mode-btn{
+pointer-events:all;background:var(–accent);border:none;color:#2a1000;
+font-family:‘Fredoka One’,cursive;font-size:20px;letter-spacing:2px;
+padding:12px 30px;cursor:pointer;transition:all .2s;
+border-radius:30px;box-shadow:0 4px 0 #8a5500;
+}
+.mode-btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 #8a5500;}
+.mode-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #8a5500;}
+.mode-btn.p2{background:#66bbff;box-shadow:0 4px 0 #224488;}
+.mode-btn.p2:hover{box-shadow:0 6px 0 #224488;}
+.mode-btn.bot{background:#ff8888;box-shadow:0 4px 0 #882222;}
+.mode-btn.bot:hover{box-shadow:0 6px 0 #882222;}
+.controls-hint{font-size:9px;color:var(–muted);text-align:center;line-height:1.8;font-weight:600;}
+.controls-hint span{color:var(–accent);}
+
+/* ── HUD ── */
+#hud{position:fixed;top:8px;left:0;width:100%;display:none;align-items:flex-start;justify-content:space-between;padding:0 14px;pointer-events:none;z-index:50;}
+.player-hud{display:flex;flex-direction:column;gap:3px;min-width:155px;}
+.player-hud.right{align-items:flex-end;}
+.player-name{font-family:‘Fredoka One’,cursive;font-size:15px;letter-spacing:1px;}
+.hp-bar-wrap{width:155px;height:10px;background:#1a1008;border:2px solid #4a3010;border-radius:6px;overflow:hidden;}
+.hp-bar{height:100%;transition:width .15s;border-radius:4px;}
+.p1-hp{background:linear-gradient(90deg,#44aaff,#0066cc);}
+.p2-hp{background:linear-gradient(90deg,#ff5555,#cc2200);}
+.ab-row{display:flex;align-items:center;gap:5px;width:155px;}
+.ab-label{font-size:7px;color:var(–muted);letter-spacing:1px;white-space:nowrap;font-weight:700;}
+.ab-bar-wrap{flex:1;height:6px;background:#1a1008;border:1px solid #4a3010;border-radius:4px;overflow:hidden;}
+.ab-bar{height:100%;width:0%;transition:width .1s;border-radius:3px;}
+.ab-ready{animation:abPulse .5s ease-in-out infinite;}
+@keyframes abPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.stock-pips{display:flex;gap:4px;}
+.pip{width:9px;height:9px;border-radius:50%;background:#2a1c08;border:2px solid #4a3010;}
+.pip.active{background:var(–accent);border-color:#8a6000;}
+.weapon-badge{font-size:8px;letter-spacing:1px;padding:2px 6px;background:#2a1c08;border:1px solid #4a3010;border-radius:4px;color:var(–muted);font-weight:700;}
+.status-tag{font-family:‘Fredoka One’,cursive;font-size:12px;padding:1px 5px;letter-spacing:1px;}
+#timer-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;}
+#timer{font-family:‘Fredoka One’,cursive;font-size:34px;letter-spacing:3px;line-height:1;color:var(–accent);}
+#round-label{font-size:8px;color:var(–muted);letter-spacing:3px;font-weight:700;}
+
+/* joysticks */
+#joysticks{position:fixed;bottom:0;left:0;width:100%;display:none;justify-content:space-between;padding:10px 18px;pointer-events:none;z-index:60;}
+.joystick-zone{pointer-events:all;width:110px;height:110px;position:relative;}
+.joystick-base{width:100px;height:100px;border-radius:50%;background:rgba(245,200,66,.06);border:2px solid rgba(245,200,66,.18);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+.joystick-knob{width:38px;height:38px;border-radius:50%;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.j1-knob{background:radial-gradient(circle,#66aaff,#224488);}
+.j2-knob{background:radial-gradient(circle,#ff8888,#882222);}
+
+/* overlay */
+#overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(10,6,0,.85);flex-direction:column;gap:14px;}
+#overlay-title{font-family:‘Fredoka One’,cursive;font-size:clamp(34px,7vw,76px);letter-spacing:3px;text-align:center;color:var(–accent);text-shadow:0 4px 0 #8a5500;}
+#overlay-sub{font-size:11px;color:var(–muted);letter-spacing:3px;font-weight:700;}
+.overlay-btn{pointer-events:all;border:none;font-family:‘Fredoka One’,cursive;font-size:18px;letter-spacing:2px;padding:12px 32px;cursor:pointer;transition:all .15s;border-radius:25px;}
+.overlay-btn.primary{background:var(–accent);color:#2a1000;box-shadow:0 4px 0 #8a5500;}
+.overlay-btn.secondary{background:#3a2810;color:var(–text);box-shadow:0 4px 0 #1a0c00;}
+.overlay-btn:hover{transform:translateY(-2px);}
+
+.arena-bg{position:fixed;inset:0;z-index:0;}
+#gameCanvas{position:relative;z-index:1;}
+
+/* ── HELP BUTTON ── */
+#helpBtn{
+position:fixed;top:10px;right:14px;z-index:150;
+width:34px;height:34px;border-radius:50%;
+background:var(–accent);border:none;
+font-family:‘Fredoka One’,cursive;font-size:20px;color:#2a1000;
+cursor:pointer;box-shadow:0 3px 0 #8a5500;
+display:flex;align-items:center;justify-content:center;
+transition:transform .15s;pointer-events:all;line-height:1;
+}
+#helpBtn:hover{transform:scale(1.12);}
+
+/* ── HELP MODAL ── */
+#helpModal{
+display:none;position:fixed;inset:0;z-index:500;
+align-items:center;justify-content:center;
+background:rgba(10,6,0,.88);
+padding:16px;
+}
+#helpPanel{
+background:radial-gradient(ellipse at 50% 0%,#3d2b10,#1a1008);
+border:2px solid #6a4820;border-radius:18px;
+padding:22px 26px;max-width:560px;width:100%;
+max-height:90vh;overflow-y:auto;
+position:relative;
+box-shadow:0 8px 40px rgba(0,0,0,.7);
+}
+#helpPanel h2{
+font-family:‘Fredoka One’,cursive;font-size:26px;
+color:var(–accent);text-align:center;
+text-shadow:0 3px 0 #8a5500;margin-bottom:16px;
+}
+.help-section{margin-bottom:14px;}
+.help-section h3{
+font-family:‘Fredoka One’,cursive;font-size:14px;
+color:var(–accent);letter-spacing:1px;
+border-bottom:1px solid #4a3010;padding-bottom:4px;margin-bottom:8px;
+}
+.help-row{
+display:flex;align-items:flex-start;gap:10px;
+margin-bottom:7px;
+}
+.help-icon{
+font-size:20px;width:28px;text-align:center;flex-shrink:0;margin-top:1px;
+}
+.help-text{font-size:11px;color:var(–text);line-height:1.6;font-weight:600;}
+.help-text strong{color:var(–accent);}
+.help-text em{color:#aaddff;font-style:normal;}
+.boost-row{
+display:flex;align-items:center;gap:10px;
+background:#2a1c08;border-radius:8px;padding:8px 10px;margin-bottom:6px;
+border:1px solid #4a3010;
+}
+.boost-icon{font-size:22px;width:28px;text-align:center;}
+.boost-info{flex:1;}
+.boost-name{font-family:‘Fredoka One’,cursive;font-size:13px;color:var(–accent);}
+.boost-desc{font-size:10px;color:var(–muted);margin-top:1px;}
+#helpClose{
+display:block;width:100%;margin-top:16px;
+background:var(–accent);border:none;
+font-family:‘Fredoka One’,cursive;font-size:18px;
+color:#2a1000;padding:10px;border-radius:25px;
+cursor:pointer;box-shadow:0 3px 0 #8a5500;
+transition:transform .15s;
+}
+#helpClose:hover{transform:translateY(-2px);}
+
+/* special fx */
+#specialFx{position:fixed;inset:0;pointer-events:none;z-index:40;}
+.spec-text{position:absolute;pointer-events:none;font-family:‘Fredoka One’,cursive;letter-spacing:4px;text-shadow:0 0 20px currentColor,0 0 50px currentColor;animation:specAnim .85s forwards;white-space:nowrap;}
+@keyframes specAnim{0%{opacity:1;transform:translate(-50%,-50%) scale(0.3);}45%{opacity:1;transform:translate(-50%,-65%) scale(1.2);}100%{opacity:0;transform:translate(-50%,-90%) scale(1.5);}}
+.screen-flash{position:fixed;inset:0;pointer-events:none;z-index:39;animation:flashAnim .3s forwards;}
+@keyframes flashAnim{0%{opacity:.35}100%{opacity:0}}
+.wp-flash{position:fixed;pointer-events:none;z-index:80;font-family:‘Fredoka One’,cursive;font-size:15px;letter-spacing:1px;animation:wpf 1.2s forwards;text-shadow:0 0 8px currentColor;}
+@keyframes wpf{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-40px)}}
+</style>
+
+</head>
+<body>
+<div class="arena-bg" id="arenaBg"></div>
+
+<div id="rotatePrompt">
+  <div class="ri">📱</div>
+  <p>BEST IN LANDSCAPE</p>
+  <small>Duck War plays better rotated sideways</small>
+  <div class="rotate-btns">
+    <button class="rotate-btn yes" onclick="document.getElementById('rotatePrompt').style.display='none'">🔄 I'LL ROTATE</button>
+    <button class="rotate-btn no" onclick="document.getElementById('rotatePrompt').style.display='none'">▶ PLAY ANYWAY</button>
+  </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- START SCREEN -->
+
+<div id="startScreen">
+  <div class="logo"><span class="logo-duck">🦆</span>DUCK WAR<span class="logo-duck">🦆</span></div>
+  <div class="subtitle">waddling ragdoll battle • v1.0</div>
+  <div class="weapon-select-row">
+    <div class="ws-panel">
+      <div class="ws-label p1c">💙 BLUE DUCK WEAPON</div>
+      <div class="ws-grid" id="wsGrid0"></div>
+      <button class="ws-random" onclick="randomWeapon(0)">🎲 RANDOM</button>
+    </div>
+    <div class="ws-panel">
+      <div class="ws-label p2c">❤️ RED DUCK WEAPON</div>
+      <div class="ws-grid" id="wsGrid1"></div>
+      <button class="ws-random" onclick="randomWeapon(1)">🎲 RANDOM</button>
+    </div>
+  </div>
+  <div class="mode-btns">
+    <button class="mode-btn p2" onclick="startGame('2p')">🦆 2 DUCKS</button>
+    <button class="mode-btn bot" onclick="startGame('bot')">🤖 VS BOT</button>
+  </div>
+  <div class="controls-hint">
+    Waddle fast → melee &nbsp;|&nbsp; Hold <span>UP 0.8s</span> → Jump &nbsp;|&nbsp; Hold <span>DOWN 0.8s</span> → Shield<br>
+    <span>Release joystick to neutral</span> → Fire Special Ability (3s cooldown shown under HP)
+  </div>
+</div>
+
+<!-- HUD -->
+
+<div id="hud">
+  <div class="player-hud left">
+    <div class="player-name" style="color:#66bbff">🦆 BLUE DUCK</div>
+    <div class="hp-bar-wrap"><div class="hp-bar p1-hp" id="hp1Bar" style="width:100%"></div></div>
+    <div class="ab-row">
+      <div class="ab-label" id="ab1Label">ABILITY</div>
+      <div class="ab-bar-wrap"><div class="ab-bar" id="ab1Bar"></div></div>
+    </div>
+    <div class="stock-pips" id="stock1"></div>
+    <div class="weapon-badge" id="wp1">FISTS</div>
+    <div class="status-tag" id="status1" style="color:#66bbff"></div>
+  </div>
+  <div id="timer-wrap">
+    <div id="round-label">ROUND 1</div>
+    <div id="timer">99</div>
+  </div>
+  <div class="player-hud right">
+    <div class="player-name" style="color:#ff8888" id="p2name">🦆 RED DUCK</div>
+    <div class="hp-bar-wrap"><div class="hp-bar p2-hp" id="hp2Bar" style="width:100%"></div></div>
+    <div class="ab-row" style="flex-direction:row-reverse;">
+      <div class="ab-label" id="ab2Label">ABILITY</div>
+      <div class="ab-bar-wrap"><div class="ab-bar" id="ab2Bar"></div></div>
+    </div>
+    <div class="stock-pips" id="stock2"></div>
+    <div class="weapon-badge" id="wp2">FISTS</div>
+    <div class="status-tag" id="status2" style="color:#ff8888"></div>
+  </div>
+</div>
+
+<!-- JOYSTICKS -->
+
+<div id="joysticks">
+  <div class="joystick-zone" id="jZone1">
+    <div class="joystick-base"><div class="joystick-knob j1-knob" id="jKnob1"></div></div>
+  </div>
+  <div class="joystick-zone" id="jZone2">
+    <div class="joystick-base"><div class="joystick-knob j2-knob" id="jKnob2"></div></div>
+  </div>
+</div>
+
+<div id="specialFx"></div>
+
+<!-- OVERLAY -->
+
+<div id="overlay">
+  <div id="overlay-title"></div>
+  <div id="overlay-sub"></div>
+  <button class="overlay-btn primary" onclick="resetGame()">PLAY AGAIN</button>
+  <button class="overlay-btn secondary" onclick="goHome()">MAIN MENU</button>
+</div>
+
+<!-- HELP BUTTON -->
+
+<button id="helpBtn" onclick="toggleHelp()">?</button>
+
+<!-- HELP MODAL -->
+
+<div id="helpModal" onclick="if(event.target===this)toggleHelp()">
+  <div id="helpPanel">
+    <h2>🦆 HOW TO PLAY</h2>
+
+```
+<div class="help-section">
+  <h3>🕹️ MOVEMENT</h3>
+  <div class="help-row">
+    <div class="help-icon">👆</div>
+    <div class="help-text"><strong>Move left / right</strong> — push the joystick left or right to waddle. Moving fast into an enemy deals <em>melee damage</em>.</div>
+  </div>
+</div>
+
+<div class="help-section">
+  <h3>⬆️ JUMP</h3>
+  <div class="help-row">
+    <div class="help-icon">🦆</div>
+    <div class="help-text"><strong>Hold joystick UP for 0.8s</strong> — a white charge bar fills above your duck. When full it fires automatically and you leap into the air. You must be on the ground for it to work.</div>
+  </div>
+</div>
+
+<div class="help-section">
+  <h3>🛡️ SHIELD</h3>
+  <div class="help-row">
+    <div class="help-icon">🔵</div>
+    <div class="help-text"><strong>Hold joystick DOWN for 0.8s</strong> — the charge bar fills. When full, a glowing bubble appears around your duck blocking all incoming damage. Release DOWN to drop the shield.</div>
+  </div>
+</div>
+
+<div class="help-section">
+  <h3>⚡ SPECIAL ABILITY</h3>
+  <div class="help-row">
+    <div class="help-icon">✨</div>
+    <div class="help-text"><strong>Release joystick back to centre</strong> — when the <em>ABILITY bar</em> under your HP is full and glowing, returning the joystick to neutral fires your special. Each weapon has a unique special. The bar refills every <strong>3 seconds</strong>.</div>
+  </div>
+</div>
+
+<div class="help-section">
+  <h3>🎁 BOOSTS</h3>
+  <div class="help-text" style="margin-bottom:8px;">Glowing orbs spawn on platforms throughout the match. Walk into one to collect it!</div>
+  <div class="boost-row">
+    <div class="boost-icon">💚</div>
+    <div class="boost-info">
+      <div class="boost-name">HEAL</div>
+      <div class="boost-desc">Instantly restores 30% of your maximum health. Great for turning the tide mid-fight.</div>
+    </div>
+  </div>
+  <div class="boost-row">
+    <div class="boost-icon">❤️</div>
+    <div class="boost-info">
+      <div class="boost-name">HP UP</div>
+      <div class="boost-desc">Permanently increases your maximum health by 25% — and scales your current HP up too.</div>
+    </div>
+  </div>
+  <div class="boost-row">
+    <div class="boost-icon">⚡</div>
+    <div class="boost-info">
+      <div class="boost-name">DAMAGE BOOST</div>
+      <div class="boost-desc">All your attacks deal 15% more damage for <strong>8 seconds</strong>. A yellow ⚡ aura pulses around your duck while active. Stacks if you collect multiple!</div>
+    </div>
+  </div>
+</div>
+
+<div class="help-section">
+  <h3>💀 LIVES & WINNING</h3>
+  <div class="help-row">
+    <div class="help-icon">🩸</div>
+    <div class="help-text">Each duck starts with <strong>3 lives</strong> per round. Lose all HP or fall off the stage to lose a life — a 3-second respawn beam brings you back. Win 2 rounds to win the match!</div>
+  </div>
+</div>
+
+<button id="helpClose" onclick="toggleHelp()">GOT IT! 🦆</button>
+```
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  DUCK WAR v1.0
+// ══════════════════════════════════════════════════
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
+
+// ── SPECIAL FX ────────────────────────────────────────
+function showSpecialFx(p,label,color){
+  const fx=document.getElementById('specialFx');
+  const fl=document.createElement('div');fl.className='screen-flash';fl.style.background=color;
+  fx.appendChild(fl);setTimeout(()=>fl.remove(),350);
+  const tx=document.createElement('div');tx.className='spec-text';tx.style.color=color;
+  tx.style.fontSize='38px';tx.style.left=p.x+'px';tx.style.top=(p.y-40)+'px';
+  tx.textContent=label;fx.appendChild(tx);setTimeout(()=>tx.remove(),950);
+}
+
+function showBoostFx(p,label,color){
+  const fx=document.getElementById('specialFx');
+  const tx=document.createElement('div');tx.className='spec-text';tx.style.color=color;
+  tx.style.fontSize='28px';tx.style.left=p.x+'px';tx.style.top=(p.y-40)+'px';
+  tx.textContent=label;fx.appendChild(tx);setTimeout(()=>tx.remove(),1100);
+}
+
+function showKOFx(x,y,color){
+  const fx=document.getElementById('specialFx');
+  // big white flash
+  const fl=document.createElement('div');fl.className='screen-flash';fl.style.background='#ffffff';
+  fl.style.animationDuration='0.5s';fx.appendChild(fl);setTimeout(()=>fl.remove(),600);
+  // KO text
+  const tx=document.createElement('div');tx.className='spec-text';tx.style.color=color;
+  tx.style.fontSize='72px';tx.style.fontFamily='Fredoka One,cursive';
+  tx.style.left=x+'px';tx.style.top=y+'px';
+  tx.textContent='KO! 🪶';fx.appendChild(tx);setTimeout(()=>tx.remove(),1400);
+  screenShake(18,0.6);
+}
+
+// ── WEAPONS ──────────────────────────────────────────
+const WEAPONS=[
+  {id:'fists',  name:'FISTS',   color:'#ffddaa', dmg:10, range:48, special:'WING SLAP!',    icon:'🪶',
+    specialFn:(a,d)=>{ 
+      // dash into opponent, deal 45 damage, send them flying
+      a.velX=a.facing*16; a.velY=-4;
+      const o=players[a.idx===0?1:0];
+      if(!o.dead){ dealDmg(a,o,45); o.velX=a.facing*18; o.velY=-10; }
+      // big feather explosion
+      for(let i=0;i<20;i++) spawnP(a.x+a.facing*i*7,a.y-20,'#ffddaa',2,2.5);
+      for(let i=0;i<16;i++) spawnP(a.x,a.y-20,'#fff8cc',2,3);
+      screenShake(8,0.25);
+    }},
+  {id:'sword',  name:'SWORD',   color:'#c0c0ff', dmg:18, range:60, special:'SLASH WAVE!',   icon:'🗡',
+    specialFn:(a,d)=>{ for(let i=-1;i<=1;i++) a.slashWaves.push({x:a.x+a.facing*50,y:a.y-20+i*24,vx:a.facing*13,vy:i*1.4,life:55,r:28,hit:false}); spawnP(a.x,a.y-20,'#c0c0ff',18,3); }},
+  {id:'hammer', name:'HAMMER',  color:'#ff9900', dmg:28, range:58, special:'EARTHQUAKE!',   icon:'🔨',
+    specialFn:(a,d)=>{ a.shockwave={x:a.x,y:a.y,r:18,maxR:300,life:40,dmg:36,hit:false}; screenShake(15,0.4); spawnP(a.x,a.y,'#ff9900',36,4); spawnP(a.x,a.y,'#ffcc44',18,3); }},
+  {id:'staff',  name:'STAFF',   color:'#a040ff', dmg:14, range:78, special:'TELEPORT!',     icon:'🪄',
+    specialFn:(a,d)=>{
+      spawnP(a.x,a.y-20,'#a040ff',20,3);           // vanish burst at origin
+      a.x=d.x+d.facing*-90;a.velX=d.facing*-9;a.velY=-4;
+      // arrival explosion
+      a.explosions.push({x:a.x,y:a.y,r:8,maxR:90,life:20,dmg:22,hit:false});
+      spawnP(a.x,a.y-20,'#ff88ff',22,3);            // appear burst
+      spawnP(a.x,a.y,'#ffffff',10,2.5);
+      d.velX*=0.15;d.velY=-6;
+      screenShake(6,0.2);
+    }},
+  {id:'gun',    name:'GUN',     color:'#ffee44', dmg:10, range:320,special:'BULLET HELL!',  icon:'🔫',
+    specialFn:(a,d)=>{ 
+      // 5 angled spread + 2 fast forward — lower dmg, slower, easier to dodge
+      const angles=[-0.35,-0.15,0,0.15,0.35];
+      angles.forEach(ang=>{ a.bullets.push({x:a.x,y:a.y-14,vx:a.facing*12*Math.cos(ang),vy:12*Math.sin(ang)-1.5,life:44,dmg:7,gun:true}); });
+      for(let i=0;i<2;i++) a.bullets.push({x:a.x,y:a.y-14,vx:a.facing*15,vy:(Math.random()-.5)*2,life:40,dmg:6,gun:true});
+    }},
+  {id:'bomb',   name:'BOMB',    color:'#ff4455', dmg:20, range:70, special:'MEGA BLAST!',   icon:'💣',
+    specialFn:(a,d)=>{ for(let i=0;i<3;i++) a.explosions.push({x:a.x+a.facing*(i*80),y:a.y,r:12,maxR:110,life:24+i*6,dmg:24,hit:false}); screenShake(10,0.3); }},
+  {id:'katana', name:'KATANA',  color:'#88ffcc', dmg:22, range:68, special:'PHANTOM SLASH!',icon:'⚔',
+    specialFn:(a,d)=>{ const ox=a.x; spawnP(ox,a.y-20,'#88ffcc',16,3); a.x=d.x+a.facing*58;a.velX=a.facing*9;a.velY=-3; spawnP(a.x,a.y-20,'#88ffcc',16,3); dealDmg(a,d,50); for(let i=0;i<20;i++) spawnP(ox+(d.x-ox)*(i/20),a.y-20,'#88ffcc',2,2); }},
+];
+const PICKUP_WEAPONS=WEAPONS.filter(w=>w.id!=='fists');
+
+// ── WEAPON SELECT ─────────────────────────────────────
+let selWeapon=[WEAPONS[0],WEAPONS[0]];
+function buildWpSelect(){
+  [0,1].forEach(pi=>{
+    const g=document.getElementById('wsGrid'+pi);g.innerHTML='';
+    WEAPONS.forEach(wp=>{
+      const c=document.createElement('div');
+      c.className='wp-card'+(selWeapon[pi].id===wp.id?' sel-p'+(pi+1):'');
+      c.innerHTML=`<span class="wic">${wp.icon}</span><span class="wnm">${wp.name}</span><span class="wsp">${wp.special.replace('!','')}</span>`;
+      c.onclick=()=>{selWeapon[pi]=wp;buildWpSelect();};
+      g.appendChild(c);
+    });
+  });
+}
+function randomWeapon(pi){selWeapon[pi]=WEAPONS[Math.floor(Math.random()*WEAPONS.length)];buildWpSelect();}
+buildWpSelect();
+
+// ── GAME STATE ────────────────────────────────────────
+let gameMode='2p',gameRunning=false,gameTime=99;
+let timerInterval=null,round=1,roundWins=[0,0];
+const TOTAL_ROUNDS=3;
+const HOLD_THRESH=0.8;
+const ABILITY_COOLDOWN=3.0;
+const RESPAWN_TIME=3; // seconds with countdown
+
+// ── SCREEN SHAKE ──────────────────────────────────────
+let shakeAmt=0,shakeDur=0;
+function screenShake(amt,dur){shakeAmt=amt;shakeDur=dur;}
+
+// ── PLATFORMS — smaller, more of them ─────────────────
+let platforms=[];
+function buildPlatforms(){
+  const gY=H-55;
+  // platform width ~8-12% of W, height 10px
+  const pw=W*.10, ph=10;
+  platforms=[
+    // ground
+    {x:0,    y:gY,     w:W,       h:16,  main:true},
+    // tier 1 (low) — 5 platforms
+    {x:W*.02, y:gY-100, w:pw,      h:ph},
+    {x:W*.20, y:gY-110, w:pw,      h:ph},
+    {x:W*.40, y:gY-95,  w:pw*1.2,  h:ph},
+    {x:W*.62, y:gY-110, w:pw,      h:ph},
+    {x:W*.82, y:gY-100, w:pw,      h:ph},
+    // tier 2 (mid) — 5 platforms
+    {x:W*.10, y:gY-200, w:pw,      h:ph},
+    {x:W*.28, y:gY-210, w:pw,      h:ph},
+    {x:W*.46, y:gY-195, w:pw*1.1,  h:ph},
+    {x:W*.66, y:gY-210, w:pw,      h:ph},
+    {x:W*.84, y:gY-200, w:pw,      h:ph},
+    // tier 3 (high) — 4 platforms
+    {x:W*.04, y:gY-300, w:pw,      h:ph},
+    {x:W*.25, y:gY-310, w:pw*1.2,  h:ph},
+    {x:W*.56, y:gY-300, w:pw*1.2,  h:ph},
+    {x:W*.80, y:gY-310, w:pw,      h:ph},
+    // tier 4 (sky) — 3 platforms
+    {x:W*.15, y:gY-400, w:pw,      h:ph},
+    {x:W*.44, y:gY-410, w:pw*1.1,  h:ph},
+    {x:W*.74, y:gY-400, w:pw,      h:ph},
+    // apex
+    {x:W*.44, y:gY-490, w:pw*.9,   h:ph},
+  ];
+}
+
+// ── BOOSTS (replace weapon pickups) ──────────────────
+const BOOST_TYPES=[
+  {id:'heal',     name:'HEAL',     icon:'💚', color:'#44ff88', desc:'+30% HP',
+    apply:(p)=>{ const gain=Math.round(p.maxHp*0.3); p.hp=Math.min(p.maxHp,p.hp+gain); updateHpHUD(p); showBoostFx(p,'💚 HEALED!','#44ff88'); spawnP(p.x,p.y,'#44ff88',24,2.5); spawnP(p.x,p.y,'#aaffcc',14,2); }},
+  {id:'healthup', name:'HP UP',    icon:'❤️', color:'#ff6688', desc:'MAX HP +25%',
+    apply:(p)=>{ const r=p.maxHp; p.maxHp=Math.round(p.maxHp*1.25); p.hp=Math.round(p.hp*(p.maxHp/r)); updateHpHUD(p); showBoostFx(p,'❤️ HP UP!','#ff6688'); spawnP(p.x,p.y,'#ff6688',24,2.5); spawnP(p.x,p.y,'#ffaacc',14,2); }},
+  {id:'dmgboost', name:'DMG UP',   icon:'⚡', color:'#ffcc00', desc:'DMG +15% (8s)',
+    apply:(p)=>{ p.dmgMult=(p.dmgMult||1)*1.15; p.dmgBoostTimer=8; showBoostFx(p,'⚡ POWER UP!','#ffcc00'); spawnP(p.x,p.y,'#ffcc00',24,2.5); spawnP(p.x,p.y,'#fff088',14,2); }},
+];
+
+let pickups=[];
+function spawnPickup(){
+  if(pickups.length>=4)return;
+  const pls=platforms.slice(1);
+  const pl=pls[Math.floor(Math.random()*pls.length)];
+  const bt=BOOST_TYPES[Math.floor(Math.random()*BOOST_TYPES.length)];
+  pickups.push({x:pl.x+pl.w/2,y:pl.y-26,boost:bt,bob:Math.random()*Math.PI*2});
+}
+
+// ── INPUT ─────────────────────────────────────────────
+const joys=[{dx:0,dy:0,id:-1},{dx:0,dy:0,id:-1}];
+const botInput={dx:0,dy:0};
+function getInput(idx){return(idx===1&&gameMode==='bot')?botInput:joys[idx];}
+
+// ── PLAYER FACTORY ────────────────────────────────────
+// Duck size: body radius ~14, legs short — overall footprint ~30px tall
+function mkPlayer(idx){
+  return{
+    idx,
+    x:idx===0?W*.2:W*.8, y:H-200,
+    velX:0,velY:0,
+    hp:100,maxHp:100,stocks:3,
+    facing:idx===0?1:-1,
+    onGround:false,
+    weapon:null,
+    bullets:[],slashWaves:[],shockwave:null,explosions:[],
+    chargeDir:null,chargeTimer:0,chargeFired:false,
+    shielding:false,shieldCooldown:0,jumpCooldown:0,
+    attackCooldown:0,
+    abilityCooldown:0,
+    joystickWasOut:false,
+    dmgMult:1,
+    dmgBoostTimer:0,
+    muzzleFlash:0,
+    hitFlash:0,
+    dead:false,
+    respawnTimer:0,      // counts down from RESPAWN_TIME
+    respawnCountdown:0,  // integer 3→2→1
+    knockback:0,
+    color:idx===0?'#3399ff':'#ff4444',
+    outlineColor:idx===0?'#66bbff':'#ff8888',
+    reset(sx){
+      this.x=sx;this.y=H-200;this.velX=0;this.velY=0;
+      this.hp=100;this.maxHp=100;this.stocks=3;
+      this.chargeDir=null;this.chargeTimer=0;this.chargeFired=false;
+      this.shielding=false;this.shieldCooldown=0;
+      this.bullets=[];this.slashWaves=[];this.shockwave=null;this.explosions=[];
+      this.dead=false;this.respawnTimer=0;this.respawnCountdown=0;this.knockback=0;this.attackCooldown=0;
+      this.abilityCooldown=0;this.joystickWasOut=false;this.dmgMult=1;this.dmgBoostTimer=0;this.muzzleFlash=0;
+      this.weapon=Object.assign({},selWeapon[this.idx]);
+      updateWpHUD(this);updateAbHUD(this);
+    }
+  };
+}
+let players=[];
+
+// ── JOYSTICK SETUP ────────────────────────────────────
+const JR=50;
+function getZC(i){const r=document.getElementById('jZone'+(i+1)).getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+function setKnob(i,dx,dy){document.getElementById('jKnob'+(i+1)).style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;}
+
+function setupInput(){
+  for(let i=0;i<2;i++){
+    const zone=document.getElementById('jZone'+(i+1));
+    zone.addEventListener('touchstart',e=>{
+      e.preventDefault();const t=e.changedTouches[0];
+      joys[i].id=t.identifier;
+      const c=getZC(i);zone._sx=c.x;zone._sy=c.y;
+      applyTouch(i,t,zone);
+    },{passive:false});
+    document.addEventListener('touchmove',e=>{
+      for(const t of e.changedTouches)if(t.identifier===joys[i].id)applyTouch(i,t,zone);
+    },{passive:false});
+    document.addEventListener('touchend',e=>{
+      for(const t of e.changedTouches)if(t.identifier===joys[i].id){
+        joys[i].id=-1;joys[i].dx=0;joys[i].dy=0;setKnob(i,0,0);
+      }
+    });
+  }
+  let md=false;const mz=document.getElementById('jZone1');
+  mz.addEventListener('mousedown',()=>{md=true;const c=getZC(0);mz._sx=c.x;mz._sy=c.y;});
+  document.addEventListener('mousemove',e=>{
+    if(!md)return;
+    let dx=e.clientX-mz._sx,dy=e.clientY-mz._sy;
+    const d=Math.sqrt(dx*dx+dy*dy);if(d>JR){dx=dx/d*JR;dy=dy/d*JR;}
+    joys[0].dx=dx/JR;joys[0].dy=dy/JR;setKnob(0,dx,dy);
+  });
+  document.addEventListener('mouseup',()=>{if(!md)return;md=false;joys[0].dx=0;joys[0].dy=0;setKnob(0,0,0);});
+  const K={};
+  document.addEventListener('keydown',e=>{K[e.code]=true;syncKb();});
+  document.addEventListener('keyup',e=>{K[e.code]=false;syncKb();});
+  function syncKb(){
+    joys[0].dx=(K['KeyD']?1:0)-(K['KeyA']?1:0);
+    joys[0].dy=(K['KeyS']?1:0)-(K['KeyW']?1:0);
+    if(gameMode!=='bot'){
+      joys[1].dx=(K['ArrowRight']?1:0)-(K['ArrowLeft']?1:0);
+      joys[1].dy=(K['ArrowDown']?1:0)-(K['ArrowUp']?1:0);
+    }
+  }
+}
+function applyTouch(i,t,zone){
+  let dx=t.clientX-zone._sx,dy=t.clientY-zone._sy;
+  const d=Math.sqrt(dx*dx+dy*dy);if(d>JR){dx=dx/d*JR;dy=dy/d*JR;}
+  joys[i].dx=dx/JR;joys[i].dy=dy/JR;setKnob(i,dx,dy);
+}
+
+// ── PARTICLES ─────────────────────────────────────────
+let particles=[];
+function spawnP(x,y,color,n,sm=1){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,s=(Math.random()*3.5+1)*sm;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1.5,life:28+Math.random()*22,maxLife:50,r:Math.random()*3.5+1.5,color});
+  }
+}
+
+// ── PHYSICS ───────────────────────────────────────────
+// Smaller duck — collision uses smaller hitbox (24px radius from center)
+const GRAV=0.35,FRIC=0.80,MSPD=7,JVEL=-13;
+const DUCK_FOOT=19; // y offset to feet — matches scaled-down duck size
+
+function platCheck(p){
+  p.onGround=false;
+  platforms.forEach(pl=>{
+    if(p.x+12>pl.x&&p.x-12<pl.x+pl.w&&p.y+DUCK_FOOT>pl.y&&p.y+DUCK_FOOT<pl.y+pl.h+10&&p.velY>=0){
+      p.y=pl.y-DUCK_FOOT;p.velY=0;p.onGround=true;
+    }
+  });
+}
+
+// ── RESPAWN BEAM (drawn on canvas) ────────────────────
+// Each dead player has a beam drawn at their respawn X position
+function drawRespawnBeam(p){
+  if(!p.dead||p.respawnTimer<=0)return;
+  const rx=p.idx===0?W*.2:W*.8;
+  const countdown=Math.ceil(p.respawnTimer);
+  const t=Date.now()/1000;
+  const beamAlpha=0.4+0.3*Math.sin(t*6);
+
+  // beam pillar from top to ground
+  const grad=ctx.createLinearGradient(rx,0,rx,H);
+  grad.addColorStop(0,'transparent');
+  grad.addColorStop(0.3,p.color+'aa');
+  grad.addColorStop(0.7,p.color+'ff');
+  grad.addColorStop(1,'transparent');
+  ctx.save();
+  ctx.globalAlpha=beamAlpha;
+  ctx.fillStyle=grad;
+  ctx.fillRect(rx-6,0,12,H);
+  // outer glow
+  const glow=ctx.createLinearGradient(rx,0,rx,H);
+  glow.addColorStop(0,'transparent');
+  glow.addColorStop(0.5,p.color+'44');
+  glow.addColorStop(1,'transparent');
+  ctx.globalAlpha=beamAlpha*0.5;
+  ctx.fillStyle=glow;
+  ctx.fillRect(rx-22,0,44,H);
+  ctx.restore();
+
+  // floating countdown number
+  const yOff=H/2+Math.sin(t*4)*8;
+  ctx.save();
+  ctx.font='bold 44px Fredoka One,cursive';
+  ctx.textAlign='center';
+  ctx.globalAlpha=0.9;
+  ctx.fillStyle='#ffffff';
+  ctx.shadowColor=p.color;ctx.shadowBlur=20;
+  ctx.fillText(countdown,rx,yOff-10);
+
+  ctx.font='13px Nunito,sans-serif';
+  ctx.globalAlpha=0.7;
+  ctx.shadowBlur=10;
+  ctx.fillText('RESPAWNING',rx,yOff+16);
+  ctx.restore();
+}
+
+// ── DRAW DUCK ─────────────────────────────────────────
+// Yellow duck with team-colour outline. Size: body ~14r, head ~9r
+// p.y is the duck's vertical center (feet at p.y+DUCK_FOOT)
+function drawDuck(p){
+  if(p.dead)return;
+  const x=p.x, y=p.y;
+  const t=Date.now()/1000;
+  const col=p.color;           // team colour for outline
+  const flash=p.hitFlash>0;
+
+  ctx.save();
+  if(flash){ctx.shadowColor='#ffffff';ctx.shadowBlur=20;}
+  else if(p.shielding){ctx.shadowColor=col;ctx.shadowBlur=18;}
+
+  // shield bubble
+  if(p.shielding){
+    ctx.beginPath();ctx.arc(x,y,26,0,Math.PI*2);
+    ctx.strokeStyle=col;ctx.lineWidth=3;ctx.globalAlpha=0.55;ctx.stroke();
+    ctx.globalAlpha=0.1;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1;
+  }
+
+  // waddling lean + scale down duck
+  const walkCycle=p.onGround&&Math.abs(p.velX)>0.5?Math.sin(t*10)*0.12:0;
+  ctx.translate(x,y);
+  ctx.scale(0.78,0.78);
+  ctx.rotate(walkCycle);
+
+  // body — plump oval
+  const bodyW=14, bodyH=12;
+  ctx.beginPath();
+  ctx.ellipse(0,2,bodyW,bodyH,0,0,Math.PI*2);
+  ctx.fillStyle=flash?'#ffffff':'#f5d020';
+  ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();
+
+  // tail fluff
+  ctx.beginPath();
+  ctx.ellipse(-p.facing*13,4,5,4,p.facing*0.5,0,Math.PI*2);
+  ctx.fillStyle=flash?'#ffffff':'#e8c010';
+  ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.stroke();
+
+  // wing (animated flap when jumping)
+  const wingFlap=!p.onGround?Math.sin(t*12)*0.4:Math.sin(t*4)*0.08;
+  ctx.save();
+  ctx.translate(0,0);ctx.rotate(wingFlap);
+  ctx.beginPath();ctx.ellipse(p.facing*8,0,9,5,p.facing*0.3,0,Math.PI*2);
+  ctx.fillStyle=flash?'#ffffff':'#e8c010';
+  ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.stroke();
+  ctx.restore();
+
+  // head
+  const hx=p.facing*8, hy=-16;
+  ctx.beginPath();ctx.arc(hx,hy,9,0,Math.PI*2);
+  ctx.fillStyle=flash?'#ffffff':'#f5d020';
+  ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.stroke();
+
+  // eye
+  ctx.beginPath();ctx.arc(hx+p.facing*4,hy-2,2.5,0,Math.PI*2);
+  ctx.fillStyle=flash?'#ffffff':'#1a1000';ctx.fill();
+  // eye shine
+  ctx.beginPath();ctx.arc(hx+p.facing*4.8,hy-3,0.9,0,Math.PI*2);
+  ctx.fillStyle='#ffffff';ctx.fill();
+
+  // beak
+  ctx.beginPath();
+  ctx.moveTo(hx+p.facing*8,hy-1);
+  ctx.lineTo(hx+p.facing*14,hy+2);
+  ctx.lineTo(hx+p.facing*8,hy+4);
+  ctx.closePath();
+  ctx.fillStyle=flash?'#ffffff':'#ff9900';
+  ctx.fill();ctx.strokeStyle='#cc6600';ctx.lineWidth=1;ctx.stroke();
+
+  // feet / legs
+  const legSwing=p.onGround?Math.sin(t*10)*5*Math.min(Math.abs(p.velX)/MSPD,1):3;
+  ctx.strokeStyle=flash?'#ffffff':'#ff9900';ctx.lineWidth=2.5;ctx.lineCap='round';
+  // left leg
+  ctx.beginPath();ctx.moveTo(-4,10);ctx.lineTo(-4-legSwing,18);ctx.lineTo(-8-legSwing,18);ctx.stroke();
+  // right leg
+  ctx.beginPath();ctx.moveTo(4,10);ctx.lineTo(4+legSwing,18);ctx.lineTo(8+legSwing,18);ctx.stroke();
+
+  // weapon icon
+  if(p.weapon&&p.weapon.id!=='fists'){
+    ctx.save();ctx.translate(p.facing*18,-8);ctx.rotate(p.facing*0.3);
+    ctx.font='14px serif';ctx.textAlign='center';
+    ctx.fillText(p.weapon.icon,0,5);ctx.restore();
+  }
+
+  ctx.restore();// un-rotate
+
+  // dmg boost aura — scaled to smaller duck
+  if(p.dmgMult>1){
+    const auraT=Date.now()/1000;
+    ctx.save();
+    ctx.globalAlpha=0.35+0.3*Math.sin(auraT*8);
+    ctx.shadowColor='#ffcc00';ctx.shadowBlur=18;
+    ctx.strokeStyle='#ffcc00';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(x,y-6,18,0,Math.PI*2);ctx.stroke();
+    ctx.font='10px serif';ctx.textAlign='center';
+    ctx.fillText('⚡',x+16,y-18);
+    ctx.globalAlpha=1;ctx.restore();
+  }
+
+  // charge bar
+  if(p.chargeDir&&p.chargeTimer>0.05&&!p.chargeFired){
+    const prog=Math.min(p.chargeTimer/HOLD_THRESH,1);
+    const bw=50,bh=7,bx=x-bw/2,by2=y-52;
+    const lbl=p.chargeDir==='up'?'▲ JUMP':'▼ SHIELD';
+    const fill=prog>=1?'#f5d020':'#ffffff';
+    ctx.font='7px Nunito,sans-serif';ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,200,.7)';ctx.fillText(lbl,x,by2-5);ctx.textAlign='left';
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(bx,by2,bw,bh);
+    ctx.save();ctx.shadowColor=fill;ctx.shadowBlur=prog>=1?16:5;
+    ctx.fillStyle=fill;ctx.fillRect(bx,by2,bw*prog,bh);ctx.restore();
+    ctx.strokeStyle='rgba(255,255,200,.25)';ctx.lineWidth=1;ctx.strokeRect(bx,by2,bw,bh);
+  }
+
+  // ability ready pulse
+  if(p.abilityCooldown<=0){
+    const pulse=0.5+0.5*Math.sin(Date.now()/180);
+    ctx.save();ctx.globalAlpha=0.5+0.5*pulse;
+    ctx.font='bold 9px Nunito,sans-serif';
+    ctx.fillStyle=p.weapon?p.weapon.color:'#f5d020';
+    ctx.textAlign='center';ctx.fillText('ABILITY READY',x,y-58);ctx.textAlign='left';
+    ctx.restore();
+  }
+}
+
+function drawProj(p){
+  // laser sight — straight horizontal line in facing direction when gun equipped and enemy in range
+  if(p.weapon&&p.weapon.id==='gun'&&!p.dead){
+    const o=players[p.idx===0?1:0];
+    if(!o.dead){
+      const dx=o.x-p.x;
+      const dist=Math.abs(dx);
+      // only show sight if enemy is roughly in front
+      if(dist<p.weapon.range&&Math.sign(dx)===p.facing){
+        const sx=p.x+p.facing*14, sy=p.y-14;
+        const ex=p.x+p.facing*dist; // end of sight line
+        ctx.save();
+        ctx.setLineDash([6,5]);
+        ctx.strokeStyle='rgba(255,238,68,0.45)';
+        ctx.lineWidth=1.5;
+        ctx.shadowColor='#ffee44';ctx.shadowBlur=6;
+        ctx.beginPath();
+        ctx.moveTo(sx,sy);
+        ctx.lineTo(ex,sy); // perfectly horizontal — player must line up vertically
+        ctx.stroke();
+        // reticle at end
+        ctx.setLineDash([]);
+        ctx.beginPath();ctx.arc(ex,sy,5,0,Math.PI*2);
+        ctx.strokeStyle='rgba(255,80,80,0.7)';ctx.lineWidth=2;ctx.shadowBlur=10;ctx.shadowColor='#ff4444';
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  // muzzle flash
+  if(p.muzzleFlash>0&&p.weapon&&p.weapon.id==='gun'){
+    const fx=p.x+p.facing*18, fy=p.y-14;
+    ctx.save();
+    ctx.globalAlpha=p.muzzleFlash/6;
+    ctx.shadowColor='#ffee44';ctx.shadowBlur=20;
+    ctx.fillStyle='#ffffff';
+    ctx.beginPath();ctx.arc(fx,fy,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffee44';
+    ctx.beginPath();ctx.arc(fx,fy,4,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+
+  // bullets — elongated streaks for gun bullets, round for others
+  p.bullets.forEach(b=>{
+    ctx.save();
+    if(b.gun){
+      // bright elongated streak oriented along velocity
+      const spd=Math.sqrt(b.vx*b.vx+b.vy*b.vy);
+      const ang=Math.atan2(b.vy,b.vx);
+      const len=Math.max(14,spd*2.5);
+      ctx.translate(b.x,b.y);ctx.rotate(ang);
+      // outer glow streak
+      const g=ctx.createLinearGradient(-len,0,4,0);
+      g.addColorStop(0,'rgba(255,238,68,0)');
+      g.addColorStop(0.5,'rgba(255,238,68,0.5)');
+      g.addColorStop(1,'rgba(255,255,255,0.9)');
+      ctx.shadowColor='#ffee44';ctx.shadowBlur=10;
+      ctx.fillStyle=g;
+      ctx.fillRect(-len,-2,len+4,4);
+      // bright core dot
+      ctx.shadowBlur=16;
+      ctx.fillStyle='#ffffff';
+      ctx.beginPath();ctx.arc(0,0,3.5,0,Math.PI*2);ctx.fill();
+    } else {
+      ctx.shadowColor=p.weapon?p.weapon.color:'#fff';ctx.shadowBlur=12;
+      ctx.beginPath();ctx.arc(b.x,b.y,4,0,Math.PI*2);ctx.fillStyle=p.weapon?p.weapon.color:'#fff';ctx.fill();
+    }
+    ctx.restore();
+  });
+  p.slashWaves.forEach(sw=>{
+    ctx.save();ctx.strokeStyle='#c0c0ff';ctx.shadowColor='#c0c0ff';ctx.shadowBlur=20;ctx.lineWidth=3.5;
+    ctx.beginPath();ctx.arc(sw.x,sw.y,sw.r,0,Math.PI*2);ctx.stroke();ctx.restore();
+  });
+  if(p.shockwave){
+    ctx.save();ctx.strokeStyle=`rgba(255,153,0,${Math.min(p.shockwave.life/40,1)})`;
+    ctx.shadowColor='#ff9900';ctx.shadowBlur=28;ctx.lineWidth=8;
+    ctx.beginPath();ctx.arc(p.shockwave.x,p.shockwave.y,p.shockwave.r,0,Math.PI*2);ctx.stroke();ctx.restore();
+  }
+  p.explosions.forEach(ex=>{
+    ctx.save();ctx.globalAlpha=Math.min(ex.life/26,.78);
+    const g=ctx.createRadialGradient(ex.x,ex.y,0,ex.x,ex.y,ex.r);
+    g.addColorStop(0,'#ffee44');g.addColorStop(.4,'#ff5500');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(ex.x,ex.y,ex.r,0,Math.PI*2);ctx.fill();ctx.restore();
+  });
+}
+
+// ── BACKGROUND & PLATFORMS ────────────────────────────
+function drawBg(){
+  // warm sky gradient
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#1a0e04');g.addColorStop(0.6,'#2a1808');g.addColorStop(1,'#3a2210');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // stars / fireflies
+  ctx.globalAlpha=0.3;
+  for(let i=0;i<40;i++){
+    const sx=(i*373)%W, sy=(i*197)%H*.6;
+    const twink=0.4+0.6*Math.sin(Date.now()/800+i);
+    ctx.globalAlpha=twink*0.25;
+    ctx.fillStyle='#ffeeaa';
+    ctx.beginPath();ctx.arc(sx,sy,1,0,Math.PI*2);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+
+function drawPlats(){
+  platforms.forEach(pl=>{
+    if(pl.main){
+      // grassy ground
+      const g=ctx.createLinearGradient(0,pl.y,0,pl.y+pl.h);
+      g.addColorStop(0,'#3a5a1a');g.addColorStop(0.4,'#2a4412');g.addColorStop(1,'#1a2a08');
+      ctx.fillStyle=g;ctx.fillRect(pl.x,pl.y,pl.w,pl.h);
+      // grass line
+      ctx.fillStyle='#5a8a2a';ctx.fillRect(pl.x,pl.y,pl.w,3);
+      // subtle dividers
+      ctx.strokeStyle='rgba(80,120,30,.2)';ctx.lineWidth=1;
+      for(let gx=0;gx<pl.w;gx+=80){ctx.beginPath();ctx.moveTo(pl.x+gx,pl.y);ctx.lineTo(pl.x+gx,pl.y+pl.h);ctx.stroke();}
+    }else{
+      // wooden platforms
+      const g=ctx.createLinearGradient(0,pl.y,0,pl.y+pl.h);
+      g.addColorStop(0,'#7a4a18');g.addColorStop(1,'#5a3410');
+      ctx.fillStyle=g;ctx.fillRect(pl.x,pl.y,pl.w,pl.h);
+      ctx.fillStyle='#9a6a30';ctx.fillRect(pl.x,pl.y,pl.w,2.5);
+      // wood grain
+      ctx.strokeStyle='rgba(60,30,5,.3)';ctx.lineWidth=1;
+      for(let gx=pl.x+8;gx<pl.x+pl.w-4;gx+=12){
+        ctx.beginPath();ctx.moveTo(gx,pl.y+1);ctx.lineTo(gx,pl.y+pl.h-1);ctx.stroke();
+      }
+      // warm glow under
+      const gl=ctx.createLinearGradient(0,pl.y+pl.h,0,pl.y+pl.h+14);
+      gl.addColorStop(0,'rgba(160,100,30,.25)');gl.addColorStop(1,'rgba(160,100,30,0)');
+      ctx.fillStyle=gl;ctx.fillRect(pl.x,pl.y+pl.h,pl.w,14);
+    }
+  });
+}
+
+function drawPkups(dt){
+  pickups.forEach(pu=>{
+    pu.bob+=dt*2.5;
+    pu.pulse=(pu.pulse||0)+dt*4;
+    const by=Math.sin(pu.bob)*6;
+    const bt=pu.boost;
+    const px=pu.x, py=pu.y+by;
+    const t=Date.now()/1000;
+    const glow=0.5+0.5*Math.sin(pu.pulse);
+
+    ctx.save();
+    // outer glow ring
+    ctx.shadowColor=bt.color; ctx.shadowBlur=20+glow*14;
+    ctx.beginPath(); ctx.arc(px,py,16,0,Math.PI*2);
+    const bg=ctx.createRadialGradient(px,py,2,px,py,16);
+    bg.addColorStop(0,bt.color+'ee');
+    bg.addColorStop(0.6,bt.color+'88');
+    bg.addColorStop(1,bt.color+'22');
+    ctx.fillStyle=bg; ctx.fill();
+
+    // spinning ring
+    ctx.strokeStyle=bt.color; ctx.lineWidth=2.5; ctx.globalAlpha=0.6+0.4*glow;
+    ctx.beginPath(); ctx.arc(px,py,18,t*2,t*2+Math.PI*1.4); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px,py,18,t*2+Math.PI,t*2+Math.PI*2.4); ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // icon in centre
+    ctx.shadowBlur=0; ctx.font='16px serif'; ctx.textAlign='center';
+    ctx.fillText(bt.icon,px,py+6);
+
+    // label below
+    ctx.shadowColor=bt.color; ctx.shadowBlur=8;
+    ctx.font='bold 8px Nunito,sans-serif';
+    ctx.fillStyle=bt.color;
+    ctx.fillText(bt.name,px,py+28);
+    ctx.font='7px Nunito,sans-serif';
+    ctx.fillStyle='rgba(255,255,200,0.7)';
+    ctx.fillText(bt.desc,px,py+38);
+    ctx.textAlign='left';
+    ctx.restore();
+  });
+}
+
+function drawParts(dt){
+  particles=particles.filter(p=>{
+    p.life-=dt*60;if(p.life<=0)return false;
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.vx*=.93;
+    ctx.globalAlpha=p.life/p.maxLife;ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+    return true;
+  });
+}
+
+// ── UPDATE PLAYER ─────────────────────────────────────
+function updatePlayer(p,dt){
+  if(!gameRunning)return;
+  if(p.dead){
+    p.respawnTimer-=dt;
+    p.respawnCountdown=Math.ceil(p.respawnTimer);
+    if(p.respawnTimer<=0){
+      p.dead=false;p.hp=100;
+      p.x=p.idx===0?W*.2:W*.8;p.y=H-200;
+      p.velX=0;p.velY=0;
+      p.chargeDir=null;p.chargeTimer=0;p.chargeFired=false;
+      p.shielding=false;p.shieldCooldown=0;p.joystickWasOut=false;
+      p.weapon=Object.assign({},selWeapon[p.idx]);
+      updateWpHUD(p);
+      // spawn beam arrival particles
+      spawnP(p.x,p.y,p.color,30,3);
+    }
+    return;
+  }
+
+  p.hitFlash=Math.max(0,p.hitFlash-dt);
+  p.attackCooldown=Math.max(0,p.attackCooldown-dt);
+  p.shieldCooldown=Math.max(0,p.shieldCooldown-dt);
+  p.jumpCooldown=Math.max(0,p.jumpCooldown-dt);
+  p.knockback=Math.max(0,p.knockback-dt);
+  if(p.abilityCooldown>0){p.abilityCooldown=Math.max(0,p.abilityCooldown-dt);updateAbHUD(p);}
+  if(p.muzzleFlash>0)p.muzzleFlash--;
+  // dmg boost expires after its duration
+  if(p.dmgBoostTimer>0){
+    p.dmgBoostTimer-=dt;
+    if(p.dmgBoostTimer<=0){p.dmgBoostTimer=0;p.dmgMult=1;}
+  }
+
+  const inp=getInput(p.idx);
+  const jx=inp.dx,jy=inp.dy;
+  const jMag=Math.sqrt(jx*jx+jy*jy);
+  const isOut=jMag>0.32;
+  const isNeutral=jMag<0.12;
+
+  if(isOut)p.joystickWasOut=true;
+  if(isNeutral&&p.joystickWasOut&&p.abilityCooldown<=0){
+    fireAbility(p);p.joystickWasOut=false;p.abilityCooldown=ABILITY_COOLDOWN;updateAbHUD(p);
+  }else if(isNeutral&&p.joystickWasOut){p.joystickWasOut=false;}
+
+  // charge
+  let newDir;
+  if(p.chargeDir==='up')       newDir=jy<-0.28?'up':(jy>0.28?'down':null);
+  else if(p.chargeDir==='down')newDir=jy>0.28?'down':(jy<-0.28?'up':null);
+  else                         newDir=jy<-0.42?'up':(jy>0.42?'down':null);
+
+  if(newDir!==p.chargeDir){
+    if(p.chargeDir==='down'&&p.shielding){p.shielding=false;p.shieldCooldown=1.0;}
+    p.chargeDir=newDir;p.chargeTimer=0;p.chargeFired=false;
+  }
+  if(p.chargeDir)p.chargeTimer+=dt;
+  if(p.chargeDir&&!p.chargeFired){
+    if(p.chargeDir==='up'&&p.chargeTimer>=HOLD_THRESH){
+      if(p.onGround&&p.jumpCooldown<=0){p.velY=JVEL;p.jumpCooldown=0.5;spawnP(p.x,p.y+DUCK_FOOT,p.color,7);}
+      p.chargeFired=true;
+    }
+    if(p.chargeDir==='down'&&p.chargeTimer>=HOLD_THRESH&&p.shieldCooldown<=0&&!p.shielding){
+      p.shielding=true;p.chargeFired=true;
+    }
+  }
+
+  if(!p.shielding){
+    if(Math.abs(jx)>0.1){p.velX+=jx*1.2;p.facing=jx>0?1:-1;}
+    p.velX=Math.max(-MSPD,Math.min(MSPD,p.velX));
+  }
+  p.velX*=FRIC;p.velY+=GRAV;
+  p.x+=p.velX;p.y+=p.velY;
+  // ceiling check — stop upward movement completely
+  if(p.y<0){p.y=0;if(p.velY<0)p.velY=0;}
+  platCheck(p);
+
+  if(p.y>H+100){
+    p.stocks--;updateStockHUD(p);
+    showKOFx(p.x,H/2,p.color);
+    if(p.stocks<=0){endGame(p.idx===0?1:0);return;}
+    p.dead=true;p.respawnTimer=RESPAWN_TIME;p.respawnCountdown=RESPAWN_TIME;
+    spawnP(p.x,H-80,p.color,25,2.5);return;
+  }
+  p.x=Math.max(14,Math.min(W-14,p.x));
+
+  // melee / ranged attack
+  if(p.attackCooldown<=0&&!p.shielding){
+    const o=players[p.idx===0?1:0];
+    if(!o.dead){
+      const dx=o.x-p.x,dy=(o.y-10)-(p.y-10);
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(p.weapon&&p.weapon.id==='gun'){
+        // gun fires straight in facing direction — no auto-aim, slight random spread
+        if(dist<p.weapon.range&&Math.abs(dx)>20){
+          const spread=(Math.random()-.5)*0.18; // small random vertical wobble
+          p.bullets.push({x:p.x+p.facing*14,y:p.y-14,vx:p.facing*14,vy:Math.sin(spread)*14,life:36,dmg:p.weapon.dmg,gun:true});
+          p.muzzleFlash=6;
+          p.attackCooldown=0.55;
+        }
+      } else {
+        if(dist<(p.weapon?p.weapon.range:48)&&Math.abs(p.velX)>1.4)
+          dealDmg(p,o,(p.weapon?p.weapon.dmg:10)*(Math.abs(p.velX)/MSPD));
+      }
+    }
+  }
+  p.bullets=p.bullets.filter(b=>{
+    b.x+=b.vx;b.y+=b.vy;b.life--;
+    const o=players[p.idx===0?1:0];
+    if(!o.dead&&Math.sqrt((b.x-o.x)**2+(b.y-o.y)**2)<26){dealDmg(p,o,b.dmg);return false;}
+    return b.life>0;
+  });
+  p.slashWaves=p.slashWaves.filter(sw=>{
+    sw.x+=sw.vx;sw.y+=sw.vy;sw.life--;
+    const o=players[p.idx===0?1:0];
+    if(!sw.hit&&!o.dead&&Math.sqrt((sw.x-o.x)**2+(sw.y-o.y)**2)<sw.r+18){dealDmg(p,o,28);sw.hit=true;}
+    return sw.life>0;
+  });
+  if(p.shockwave){
+    p.shockwave.r+=(p.shockwave.maxR-p.shockwave.r)*.11;p.shockwave.life--;
+    const o=players[p.idx===0?1:0];
+    if(!p.shockwave.hit&&!o.dead&&Math.sqrt((p.shockwave.x-o.x)**2+(p.shockwave.y-o.y)**2)<p.shockwave.r){
+      dealDmg(p,o,p.shockwave.dmg);p.shockwave.hit=true;
+    }
+    if(p.shockwave.life<=0)p.shockwave=null;
+  }
+  p.explosions=p.explosions.filter(ex=>{
+    ex.r+=(ex.maxR-ex.r)*.18;ex.life--;
+    if(ex.life===20){spawnP(ex.x,ex.y,'#ff8800',28,3);spawnP(ex.x,ex.y,'#ffee44',14,2);}
+    const o=players[p.idx===0?1:0];
+    if(!ex.hit&&!o.dead&&Math.sqrt((ex.x-o.x)**2+(ex.y-o.y)**2)<ex.r){dealDmg(p,o,ex.dmg);ex.hit=true;}
+    return ex.life>0;
+  });
+  pickups=pickups.filter(pu=>{
+    if(Math.sqrt((pu.x-p.x)**2+(pu.y-p.y)**2)<34){
+      pu.boost.apply(p);
+      return false;
+    }
+    return true;
+  });
+}
+
+function fireAbility(p){
+  const o=players[p.idx===0?1:0];
+  if(p.weapon&&p.weapon.specialFn){
+    p.weapon.specialFn(p,o);
+    showSpecialFx(p,p.weapon.special,p.weapon.color);
+    showStatus(p,p.weapon.special);
+    spawnP(p.x,p.y,p.weapon.color,18,2.5);
+  }
+}
+
+function dealDmg(atk,tgt,amt){
+  if(tgt.shielding){spawnP(tgt.x,tgt.y,'#aabbff',7);atk.attackCooldown=0.4;return;}
+  const finalAmt=amt*(atk.dmgMult||1);
+  tgt.hp=Math.max(0,tgt.hp-Math.min(finalAmt,tgt.hp));
+  tgt.hitFlash=0.18;tgt.knockback=12;
+  tgt.velX+=(tgt.x>atk.x?1:-1)*finalAmt*.14;tgt.velY-=finalAmt*.06;
+  spawnP(tgt.x,tgt.y,atk.weapon?atk.weapon.color:'#ffddaa',9,1.8);
+  atk.attackCooldown=0.26;updateHpHUD(tgt);
+  if(tgt.hp<=0){
+    tgt.stocks--;updateStockHUD(tgt);spawnP(tgt.x,tgt.y,tgt.color,40,3);
+    showKOFx(tgt.x,tgt.y-20,tgt.color);
+    if(tgt.stocks<=0){endGame(atk.idx);return;}
+    tgt.dead=true;tgt.respawnTimer=RESPAWN_TIME;tgt.respawnCountdown=RESPAWN_TIME;
+  }
+}
+
+// ── BOT AI ────────────────────────────────────────────
+const BOT={state:'chase',stateTimer:0,comboTimer:0,aggr:0.6};
+
+function updateBot(bot,dt){
+  if(!gameRunning||bot.dead){botInput.dx=0;botInput.dy=0;return;}
+  const pl=players[0];
+  if(pl.dead){botInput.dx=0;botInput.dy=0;return;}
+  const dx=pl.x-bot.x,dist=Math.abs(dx),distY=pl.y-bot.y;
+  BOT.aggr=0.45+0.55*(1-pl.hp/pl.maxHp);
+  BOT.stateTimer-=dt;BOT.comboTimer=Math.max(0,BOT.comboTimer-dt);
+  if(BOT.stateTimer<=0){
+    const r=Math.random();
+    if(Math.abs(pl.velX)>5&&Math.sign(pl.velX)===Math.sign(dx)*-1&&dist<100&&bot.onGround){BOT.state='evade';BOT.stateTimer=0.5;}
+    else if(dist<85&&Math.abs(pl.velX)>3&&bot.shieldCooldown<=0&&r<0.28*BOT.aggr){BOT.state='shield';BOT.stateTimer=1.2;}
+    else if(bot.onGround&&(distY<-70||r<0.2)){BOT.state='jump';BOT.stateTimer=0.3;}
+    else if(pickups.length>0&&r<0.35){BOT.state='pickup';BOT.stateTimer=3.5;}
+    else{BOT.state='chase';BOT.stateTimer=0.3+Math.random()*0.5;}
+  }
+  let wdx=0,wdy=0;
+  switch(BOT.state){
+    case'chase':wdx=dist>55?(dx>0?.92:-.92):dist<28?(dx>0?-.4:.4):(dx>0?.48:-.48);break;
+    case'evade':wdx=dx>0?-1:1;break;
+    case'shield':wdy=1;break;
+    case'jump':wdy=-1;if(dist>45)wdx=dx>0?.75:-.75;break;
+    case'pickup':{
+      if(pickups.length>0){
+        const pu=pickups.reduce((b,c)=>Math.abs(c.x-bot.x)<Math.abs(b.x-bot.x)?c:b,pickups[0]);
+        wdx=(pu.x-bot.x)>0?.88:-.88;
+        // only pulse jump once when grounded, don't hold wdy up continuously
+        if(pu.y<bot.y-60&&bot.onGround&&bot.jumpCooldown<=0)wdy=-1;
+      }else{BOT.state='chase';BOT.stateTimer=0;}
+      break;
+    }
+  }
+  if(BOT.comboTimer<=0&&bot.abilityCooldown<=0&&dist<150&&!bot.shielding){
+    if(pl.hp<32||Math.random()<0.05*BOT.aggr){
+      botInput.dx=1;botInput.dy=0;bot.joystickWasOut=true;
+      setTimeout(()=>{botInput.dx=0;botInput.dy=0;},80);
+      BOT.comboTimer=ABILITY_COOLDOWN+0.5;
+    }
+  }
+  botInput.dx=wdx;botInput.dy=wdy;
+}
+
+// ── HUD ───────────────────────────────────────────────
+function updateHpHUD(p){document.getElementById('hp'+(p.idx+1)+'Bar').style.width=(p.hp/p.maxHp*100)+'%';}
+function updateStockHUD(p){
+  const el=document.getElementById('stock'+(p.idx+1));el.innerHTML='';
+  for(let i=0;i<3;i++){const d=document.createElement('div');d.className='pip'+(i<p.stocks?' active':'');el.appendChild(d);}
+}
+function updateWpHUD(p){
+  const wp=p.weapon;
+  document.getElementById('wp'+(p.idx+1)).textContent=wp?(wp.id==='fists'?'🪶 FISTS':wp.icon+' '+wp.name):'🪶 FISTS';
+}
+function updateAbHUD(p){
+  const bar=document.getElementById('ab'+(p.idx+1)+'Bar');
+  const label=document.getElementById('ab'+(p.idx+1)+'Label');
+  const prog=p.abilityCooldown<=0?1:1-(p.abilityCooldown/ABILITY_COOLDOWN);
+  bar.style.width=(prog*100)+'%';
+  const wpColor=(p.weapon&&p.weapon.color)||'#f5d020';
+  const ready=p.abilityCooldown<=0;
+  bar.style.background=ready?`linear-gradient(90deg,${wpColor},#ffffff88)`:'linear-gradient(90deg,#7a5010,#c08020)';
+  bar.classList.toggle('ab-ready',ready);
+  if(label){label.textContent=ready?'READY!':((p.weapon&&p.weapon.id!=='fists')?p.weapon.name:'ABILITY');label.style.color=ready?wpColor:'#5a4020';}
+}
+const stT=[null,null];
+function showStatus(p,t){
+  const el=document.getElementById('status'+(p.idx+1));el.textContent=t;
+  if(stT[p.idx])clearTimeout(stT[p.idx]);
+  stT[p.idx]=setTimeout(()=>{el.textContent='';},1200);
+}
+function showWpFlash(p,wp){
+  const f=document.createElement('div');f.className='wp-flash';f.style.color=wp.color;
+  f.style.left=(p.x-36)+'px';f.style.top=(p.y-65)+'px';
+  f.textContent=wp.icon+' '+wp.name+' GET!';
+  document.body.appendChild(f);setTimeout(()=>f.remove(),1300);
+}
+
+// ── TIMER ─────────────────────────────────────────────
+function startTimer(){
+  gameTime=99;document.getElementById('timer').textContent=99;
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    if(!gameRunning)return;
+    document.getElementById('timer').textContent=--gameTime;
+    if(gameTime<=0)endGame(players[0].hp>=players[1].hp?0:1);
+  },1000);
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────
+let pickupTimer=0,PKUP_INT=5,lastTs=0;
+function loop(ts){
+  const dt=Math.min((ts-lastTs)/1000,.05);lastTs=ts;
+  let sx=0,sy=0;
+  if(shakeDur>0){shakeDur-=dt;sx=(Math.random()-.5)*shakeAmt*2;sy=(Math.random()-.5)*shakeAmt*2;shakeAmt*=0.82;if(shakeDur<=0)shakeAmt=0;}
+  ctx.save();ctx.translate(sx,sy);
+
+  drawBg();
+  // draw respawn beams BEHIND platforms
+  if(gameRunning)players.forEach(p=>drawRespawnBeam(p));
+  drawPlats();drawPkups(dt);
+
+  if(gameRunning){
+    pickupTimer+=dt;if(pickupTimer>PKUP_INT){spawnPickup();pickupTimer=0;}
+    players.forEach((p,i)=>{if(gameMode==='bot'&&i===1)updateBot(p,dt);updatePlayer(p,dt);});
+  }
+  drawParts(dt);
+  players.forEach(p=>{drawProj(p);drawDuck(p);});
+  ctx.restore();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(ts=>{lastTs=ts;requestAnimationFrame(loop);});
+
+// ── GAME FLOW ─────────────────────────────────────────
+function startGame(mode){
+  gameMode=mode;gameRunning=false;
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('joysticks').style.display='flex';
+  const z2=document.getElementById('jZone2');
+  if(mode==='bot'){
+    z2.style.display='none';
+    document.getElementById('p2name').textContent='🤖 BOT DUCK';
+    if(selWeapon[1].id==='fists')selWeapon[1]=PICKUP_WEAPONS[Math.floor(Math.random()*PICKUP_WEAPONS.length)];
+  }else{
+    z2.style.display='block';
+    document.getElementById('p2name').textContent='🦆 RED DUCK';
+  }
+  buildPlatforms();
+  players=[mkPlayer(0),mkPlayer(1)];
+  players.forEach(p=>{p.weapon=Object.assign({},selWeapon[p.idx]);updateHpHUD(p);updateStockHUD(p);updateWpHUD(p);updateAbHUD(p);});
+  BOT.state='chase';BOT.stateTimer=0;BOT.comboTimer=0;botInput.dx=0;botInput.dy=0;
+  pickups=[];pickupTimer=0;particles=[];
+  for(let i=0;i<4;i++)setTimeout(spawnPickup,600+i*600);
+  document.getElementById('round-label').textContent='ROUND '+round;
+  showOv('ROUND '+round,'GET READY!',false);
+  setTimeout(()=>{hideOv();gameRunning=true;startTimer();},1600);
+}
+
+function endGame(wi){
+  if(!gameRunning)return;
+  gameRunning=false;clearInterval(timerInterval);
+  roundWins[wi]++;
+  const wn=wi===0?'BLUE DUCK':(gameMode==='bot'?'BOT DUCK':'RED DUCK');
+  spawnP(players[wi].x,players[wi].y,players[wi].color,50,3);
+  if(roundWins[wi]>=2||round>=TOTAL_ROUNDS){
+    showOv('🏆 '+wn+' WINS!',roundWins[0]+' - '+roundWins[1]+' | MATCH OVER',true);
+  }else{
+    round++;document.getElementById('round-label').textContent='ROUND '+round;
+    showOv(wn+' WINS ROUND!','Score: '+roundWins[0]+' - '+roundWins[1],false);
+    setTimeout(()=>{hideOv();resetRound();},2000);
+  }
+}
+
+function resetRound(){
+  players.forEach((p,i)=>{p.reset(i===0?W*.2:W*.8);updateHpHUD(p);updateStockHUD(p);updateWpHUD(p);updateAbHUD(p);});
+  pickups=[];particles=[];pickupTimer=0;
+  BOT.state='chase';BOT.stateTimer=0;BOT.comboTimer=0;botInput.dx=0;botInput.dy=0;
+  for(let i=0;i<3;i++)setTimeout(spawnPickup,400+i*600);
+  gameRunning=true;startTimer();
+}
+
+function resetGame(){
+  hideOv();round=1;roundWins=[0,0];buildPlatforms();
+  players.forEach((p,i)=>{p.reset(i===0?W*.2:W*.8);updateHpHUD(p);updateStockHUD(p);updateWpHUD(p);updateAbHUD(p);});
+  pickups=[];particles=[];pickupTimer=0;
+  BOT.state='chase';BOT.stateTimer=0;BOT.comboTimer=0;botInput.dx=0;botInput.dy=0;
+  document.getElementById('round-label').textContent='ROUND 1';
+  for(let i=0;i<3;i++)setTimeout(spawnPickup,400+i*600);
+  showOv('ROUND 1','QUACK QUACK!',false);
+  setTimeout(()=>{hideOv();gameRunning=true;startTimer();},1400);
+}
+
+function goHome(){
+  hideOv();gameRunning=false;clearInterval(timerInterval);round=1;roundWins=[0,0];
+  document.getElementById('hud').style.display='none';
+  document.getElementById('joysticks').style.display='none';
+  document.getElementById('helpModal').style.display='none';
+  document.getElementById('startScreen').style.display='flex';
+  buildWpSelect();
+}
+
+function showOv(title,sub,btns=true){
+  document.getElementById('overlay-title').textContent=title;
+  document.getElementById('overlay-sub').textContent=sub;
+  document.querySelectorAll('#overlay .overlay-btn').forEach(b=>b.style.display=btns?'inline-block':'none');
+  document.getElementById('overlay').style.display='flex';
+}
+function hideOv(){document.getElementById('overlay').style.display='none';}
+
+function toggleHelp(){
+  const m=document.getElementById('helpModal');
+  m.style.display=m.style.display==='flex'?'none':'flex';
+}
+
+setupInput();
+// Show landscape suggestion once if starting in portrait
+if(window.innerHeight>window.innerWidth){
+  document.getElementById('rotatePrompt').style.display='flex';
+}
+</script>
+
+</body>
+</html>
