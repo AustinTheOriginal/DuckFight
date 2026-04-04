@@ -123,9 +123,9 @@ border-radius:30px;box-shadow:0 4px 0 #8a5500;
 
 /* joysticks */
 #joysticks{position:fixed;bottom:0;left:0;width:100%;display:none;justify-content:space-between;padding:10px 18px;pointer-events:none;z-index:60;}
-.joystick-zone{pointer-events:all;width:110px;height:110px;position:relative;}
-.joystick-base{width:100px;height:100px;border-radius:50%;background:rgba(245,200,66,.06);border:2px solid rgba(245,200,66,.18);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
-.joystick-knob{width:38px;height:38px;border-radius:50%;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.joystick-zone{pointer-events:all;width:170px;height:170px;position:relative;}
+.joystick-base{width:155px;height:155px;border-radius:50%;background:rgba(245,200,66,.06);border:2px solid rgba(245,200,66,.18);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+.joystick-knob{width:60px;height:60px;border-radius:50%;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;}
 .j1-knob{background:radial-gradient(circle,#66aaff,#224488);}
 .j2-knob{background:radial-gradient(circle,#ff8888,#882222);}
 
@@ -610,7 +610,7 @@ function mkPlayer(idx){
 let players=[];
 
 // ── JOYSTICK SETUP ────────────────────────────────────
-const JR=50;
+const JR=75;
 function getZC(i){const r=document.getElementById('jZone'+(i+1)).getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
 function setKnob(i,dx,dy){document.getElementById('jKnob'+(i+1)).style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;}
 
